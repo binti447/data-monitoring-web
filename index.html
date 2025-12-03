@@ -10,8 +10,17 @@
     table { border-collapse: collapse; width: 100%; }
     th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
     th { background-color: #f2f2f2; position: sticky; top: 0; z-index: 2; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-    tr.belum { background-color: #ffe5e5; }   /* merah muda untuk Belum Terbayar */
-    tr.active { outline: 2px solid orange; background-color: #fff8dc !important; } /* highlight baris aktif */
+
+    /* hanya font merah untuk Belum Terbayar */
+    tr.belum td {
+      color: #d10000;
+    }
+
+    /* highlight biru soft untuk baris aktif */
+    tr.active {
+      outline: 2px solid #3399ff;
+      background-color: #e6f2ff !important;
+    }
   </style>
 </head>
 <body>
@@ -25,7 +34,6 @@
     const MAX_ROWS = 30;
     let displayData = [];
 
-    // Normalisasi string: huruf kecil, trim spasi
     function norm(s) {
       return (s ?? "").toString().toLowerCase().trim();
     }
@@ -35,19 +43,14 @@
         const response = await fetch(API_URL);
         const data = await response.json();
 
-        // Urutkan semua data berdasarkan Tanggal Berangkat terbaru
         data.sort((a, b) => new Date(norm(b["Tanggal Berangkat"])) - new Date(norm(a["Tanggal Berangkat"])));
 
-        // Pisahkan data Belum Terbayar dan Sudah Terbayar
         const belumTerbayar = data.filter(row => norm(row["Status Penyelesaian"]) === "belum terbayar");
         const sudahTerbayar = data.filter(row => norm(row["Status Penyelesaian"]) === "sudah terbayar");
 
         console.log("Total:", data.length, "Belum:", belumTerbayar.length, "Sudah:", sudahTerbayar.length);
 
-        // Gabungkan: ambil dulu Belum Terbayar, lalu Sudah Terbayar
         const gabungan = [...belumTerbayar, ...sudahTerbayar];
-
-        // Ambil maksimal 30 baris dari gabungan
         displayData = gabungan.slice(0, MAX_ROWS);
 
         renderTable(displayData);
@@ -76,8 +79,6 @@
 
       data.forEach(row => {
         const tr = document.createElement("tr");
-
-        // Tambahkan class warna hanya untuk Belum Terbayar
         const status = norm(row["Status Penyelesaian"]);
         if (status === "belum terbayar") {
           tr.classList.add("belum");
@@ -92,7 +93,6 @@
       });
     }
 
-    // Highlight baris aktif (yang berada di tengah container)
     function highlightVisibleRow() {
       const container = document.getElementById("scroll-container");
       const rows = container.querySelectorAll("tr:not(:first-child)");
@@ -111,7 +111,6 @@
       }
     }
 
-    // Scroll pixel demi pixel, reset ke atas setelah mentok bawah
     function autoScroll() {
       const container = document.getElementById("scroll-container");
       if (!container) return;
@@ -123,12 +122,12 @@
         container.scrollTop = 0;
       }
 
-      highlightVisibleRow(); // panggil highlight setiap scroll
+      highlightVisibleRow();
     }
 
-    setInterval(fetchData, 10000); // refresh data tiap 10 detik
+    setInterval(fetchData, 10000);
     fetchData();
-    setInterval(autoScroll, 30); // scroll pixel tiap 30ms
+    setInterval(autoScroll, 30);
   </script>
 </body>
 </html>
