@@ -64,7 +64,16 @@
 
         console.log("Total:", data.length, "Belum:", belumTerbayar.length, "Sudah:", sudahTerbayar.length);
 
-        const gabungan = [...belumTerbayar, ...sudahTerbayar];
+        // Gabungkan: ambil dulu Belum Terbayar, lalu Sudah Terbayar
+        let gabungan = [...belumTerbayar, ...sudahTerbayar];
+
+        // Filter hanya baris dengan No SPPD valid
+        gabungan = gabungan.filter(row => {
+          const noSPPD = (row["No SPPD"] ?? "").toString().trim();
+          return noSPPD !== "" && noSPPD !== "-" && noSPPD !== "0";
+        });
+
+        // Ambil maksimal 30 baris dari gabungan
         displayData = gabungan.slice(0, MAX_ROWS);
 
         renderTable(displayData);
@@ -72,7 +81,6 @@
         console.error("Gagal ambil data:", error);
       }
     }
-
     function renderTable(data) {
       const table = document.getElementById("data-table");
       table.innerHTML = "";
@@ -149,4 +157,5 @@
   </script>
 </body>
 </html>
+
 
