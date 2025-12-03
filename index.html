@@ -56,7 +56,6 @@
     const API_URL = "https://script.google.com/macros/s/AKfycbx7E2NYYjyvpDQOCbuAoPg38a9IJRS4YbqX80hA_T3tSueVC7jKhxSn5NqkAhBoKV1fuQ/exec";
     const MAX_ROWS = 30;
     let displayData = [];
-    let currentRow = 0;
 
     async function fetchData() {
       try {
@@ -70,22 +69,21 @@
           return dateB - dateA;
         });
 
-        // Pisahkan data Belum Terbayar dan Sudah Terbayar
+        // Pisahkan data Belum Terbayar dan Terbayar
         const belumTerbayar = data.filter(row =>
           row["Status Penyelesaian"] &&
           row["Status Penyelesaian"].toLowerCase().includes("belum terbayar")
         );
 
-        const sudahTerbayar = data.filter(row =>
+        const terbayar = data.filter(row =>
           row["Status Penyelesaian"] &&
           row["Status Penyelesaian"].toLowerCase().includes("terbayar")
         );
 
-        // Gabungkan: ambil dulu Belum Terbayar, kalau kurang dari 30 tambahkan Sudah Terbayar
-        displayData = belumTerbayar.concat(sudahTerbayar).slice(0, MAX_ROWS);
+        // Gabungkan: ambil dulu Belum Terbayar, kalau kurang dari 30 tambahkan Terbayar
+        displayData = belumTerbayar.concat(terbayar).slice(0, MAX_ROWS);
 
         renderTable(displayData);
-        currentRow = 0; // reset scroll ke awal setiap refresh
       } catch (error) {
         console.error("Gagal ambil data:", error);
       }
@@ -115,34 +113,25 @@
       });
     }
 
-    function scrollByRow() {
+    // Scroll pixel demi pixel
+    let scrollDirection = 1; // 1 = turun, -1 = naik
+    function autoScroll() {
       const container = document.querySelector(".table-wrap");
-      const rows = document.querySelectorAll("#data-table tr");
-      if (rows.length <= 1) return;
+      if (!container) return;
 
-      rows.forEach(r => r.classList.remove("active"));
+      const maxScroll = container.scrollHeight - container.clientHeight;
+      container.scrollTop += scrollDirection * 2; // geser 2px tiap interval
 
-      const rowIndex = currentRow % displayData.length;
-      const activeRow = rows[rowIndex + 1]; // +1 karena index 0 = header
-
-      if (activeRow) {
-        activeRow.classList.add("active");
-
-        // Hitung posisi scroll berdasarkan tinggi baris
-        const rowHeight = activeRow.offsetHeight;
-        container.scrollTop = rowIndex * rowHeight;
-      }
-
-      currentRow++;
-      if (currentRow >= displayData.length) {
-        currentRow = 0; // balik ke awal setelah semua baris tampil
-        container.scrollTop = 0; // reset scroll ke atas
+      if (container.scrollTop >= maxScroll) {
+        scrollDirection = -1; // kalau sudah mentok bawah, balik naik
+      } else if (container.scrollTop <= 0) {
+        scrollDirection = 1; // kalau sudah di atas, turun lagi
       }
     }
 
     setInterval(fetchData, 10000); // refresh data tiap 10 detik
     fetchData();
-    setInterval(scrollByRow, 2000); // scroll baris tiap 2 detik
+    setInterval(autoScroll, 50); // scroll pixel tiap 50ms
   </script>
 </body>
 </html>
