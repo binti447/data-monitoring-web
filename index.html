@@ -40,15 +40,11 @@
       z-index: 2;
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
-
-    tr.active {
-      background-color: #dbeafe;
-    }
   </style>
 </head>
 <body>
   <h1>Data Monitoring</h1>
-  <div class="table-wrap">
+  <div class="table-wrap" id="scroll-container">
     <table id="data-table"></table>
   </div>
 
@@ -63,21 +59,14 @@
         const data = await response.json();
 
         // Urutkan semua data berdasarkan Tanggal Berangkat terbaru
-        data.sort((a, b) => {
-          const dateA = new Date(a["Tanggal Berangkat"]);
-          const dateB = new Date(b["Tanggal Berangkat"]);
-          return dateB - dateA;
-        });
+        data.sort((a, b) => new Date(b["Tanggal Berangkat"]) - new Date(a["Tanggal Berangkat"]));
 
         // Pisahkan data Belum Terbayar dan Terbayar
         const belumTerbayar = data.filter(row =>
-          row["Status Penyelesaian"] &&
-          row["Status Penyelesaian"].toLowerCase().includes("belum terbayar")
+          row["Status Penyelesaian"]?.toLowerCase().includes("belum terbayar")
         );
-
         const terbayar = data.filter(row =>
-          row["Status Penyelesaian"] &&
-          row["Status Penyelesaian"].toLowerCase().includes("terbayar")
+          row["Status Penyelesaian"]?.toLowerCase().includes("terbayar")
         );
 
         // Gabungkan: ambil dulu Belum Terbayar, kalau kurang dari 30 tambahkan Terbayar
@@ -116,11 +105,11 @@
     // Scroll pixel demi pixel
     let scrollDirection = 1; // 1 = turun, -1 = naik
     function autoScroll() {
-      const container = document.querySelector(".table-wrap");
+      const container = document.getElementById("scroll-container");
       if (!container) return;
 
       const maxScroll = container.scrollHeight - container.clientHeight;
-      container.scrollTop += scrollDirection * 2; // geser 2px tiap interval
+      container.scrollTop += scrollDirection * 1; // geser 1px tiap interval
 
       if (container.scrollTop >= maxScroll) {
         scrollDirection = -1; // kalau sudah mentok bawah, balik naik
@@ -131,7 +120,7 @@
 
     setInterval(fetchData, 10000); // refresh data tiap 10 detik
     fetchData();
-    setInterval(autoScroll, 50); // scroll pixel tiap 50ms
+    setInterval(autoScroll, 30); // scroll pixel tiap 30ms
   </script>
 </body>
 </html>
