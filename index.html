@@ -34,18 +34,23 @@
         const response = await fetch(API_URL);
         const data = await response.json();
 
-        // Filter hanya yang Status Penyelesaian = "Belum Terbayar"
+        // Filter hanya Status Penyelesaian = "Belum Terbayar"
         filteredData = data.filter(row => 
           row["Status Penyelesaian"] && row["Status Penyelesaian"].toLowerCase().includes("belum terbayar")
         );
 
-        // Urutkan (opsional, misalnya berdasarkan tanggal atau tetap default)
-        // Di sini kita biarkan urutan asli, tapi bisa diurutkan kalau mau.
+        // Urutkan berdasarkan Tanggal Berangkat (terbaru dulu)
+        filteredData.sort((a, b) => {
+          const dateA = new Date(a["Tanggal Berangkat"]);
+          const dateB = new Date(b["Tanggal Berangkat"]);
+          return dateB - dateA; // descending
+        });
 
         // Ambil hanya 30 data pertama
         filteredData = filteredData.slice(0, MAX_ROWS);
 
         renderTable(filteredData);
+        currentRow = 0; // reset scroll ke awal setiap refresh
       } catch (error) {
         console.error("Gagal ambil data:", error);
       }
@@ -84,14 +89,14 @@
 
     // Scroll otomatis per baris
     function scrollByRow() {
-      const rows = document.querySelectorAll("#data-table tbody tr, #data-table tr");
+      const rows = document.querySelectorAll("#data-table tr");
       if (rows.length <= 1) return; // hanya header
 
       // Hilangkan highlight lama
       rows.forEach(r => r.classList.remove("active"));
 
       // Highlight baris aktif
-      const rowIndex = (currentRow % (filteredData.length));
+      const rowIndex = (currentRow % filteredData.length);
       const activeRow = rows[rowIndex + 1]; // +1 karena index 0 = header
       if (activeRow) {
         activeRow.classList.add("active");
