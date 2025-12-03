@@ -111,24 +111,25 @@ tr.active {
       });
     }
 
-    function scrollByRow() {
-      const rows = document.querySelectorAll("#data-table tr");
-      if (rows.length <= 1) return;
+  function scrollByRow() {
+  const rows = document.querySelectorAll("#data-table tr");
+  if (rows.length <= 1) return;
 
-      rows.forEach(r => r.classList.remove("active"));
+  rows.forEach(r => r.classList.remove("active"));
 
-      const rowIndex = currentRow % filteredData.length;
-      const activeRow = rows[rowIndex + 1];
-      if (activeRow) {
-        activeRow.classList.add("active");
-        activeRow.scrollIntoView({ behavior: "smooth", block: "center" });
-      }
+  const rowIndex = currentRow % filteredData.length;
+  const activeRow = rows[rowIndex + 1];
+  if (activeRow) {
+    activeRow.classList.add("active");
+    activeRow.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
 
-      currentRow++;
-      if (currentRow >= MAX_ROWS) {
-        currentRow = 0;
-      }
-    }
+  currentRow++;
+  if (currentRow >= filteredData.length) {
+    currentRow = 0; // balik ke awal sesuai jumlah data sebenarnya
+  }
+}
+
 
     setInterval(fetchData, 10000);
     fetchData();
@@ -136,4 +137,5 @@ tr.active {
   </script>
 </body>
 </html>
+
 
