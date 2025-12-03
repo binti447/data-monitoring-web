@@ -21,97 +21,100 @@
   </div>
 
   <script>
-  const API_URL = "https://script.google.com/macros/s/AKfycbx7E2NYYjyvpDQOCbuAoPg38a9IJRS4YbqX80hA_T3tSueVC7jKhxSn5NqkAhBoKV1fuQ/exec";
-  const MAX_ROWS = 30;
-  let displayData = [];
+    const API_URL = "https://script.google.com/macros/s/AKfycbx7E2NYYjyvpDQOCbuAoPg38a9IJRS4YbqX80hA_T3tSueVC7jKhxSn5NqkAhBoKV1fuQ/exec";
+    const MAX_ROWS = 30;
+    let displayData = [];
 
-  async function fetchData() {
-    try {
-      const response = await fetch(API_URL);
-      const data = await response.json();
-
-      // Urutkan semua data berdasarkan Tanggal Berangkat terbaru
-      data.sort((a, b) => new Date(b["Tanggal Berangkat"]) - new Date(a["Tanggal Berangkat"]));
-
-      // Debug: cek isi status
-      console.log("Contoh status:", data.map(r => r["Status Penyelesaian"]).slice(0,10));
-
-      // Pisahkan data Belum Terbayar dan Sudah Terbayar/Dibayar/Lunas
-      const belumTerbayar = data.filter(row =>
-        row["Status Penyelesaian"] &&
-        row["Status Penyelesaian"].toLowerCase().includes("belum")
-      );
-
-      const sudahTerbayar = data.filter(row =>
-        row["Status Penyelesaian"] &&
-        (
-          row["Status Penyelesaian"].toLowerCase().includes("terbayar") ||
-          row["Status Penyelesaian"].toLowerCase().includes("dibayar") ||
-          row["Status Penyelesaian"].toLowerCase().includes("lunas")
-        )
-      );
-
-      console.log("Belum:", belumTerbayar.length, "Sudah:", sudahTerbayar.length);
-
-      // Gabungkan: ambil dulu Belum Terbayar, lalu Sudah Terbayar
-      const gabungan = [...belumTerbayar, ...sudahTerbayar];
-
-      // Ambil maksimal 30 baris dari gabungan
-      displayData = gabungan.slice(0, MAX_ROWS);
-
-      renderTable(displayData);
-    } catch (error) {
-      console.error("Gagal ambil data:", error);
-    }
-  }
-
-  function renderTable(data) {
-    const table = document.getElementById("data-table");
-    table.innerHTML = "";
-
-    if (!data || data.length === 0) {
-      table.innerHTML = "<tr><td>Tidak ada data</td></tr>";
-      return;
+    // Normalisasi string: huruf kecil, trim spasi
+    function norm(s) {
+      return (s ?? "").toString().toLowerCase().trim();
     }
 
-    const headers = Object.keys(data[0]);
-    const headerRow = document.createElement("tr");
-    headers.forEach(header => {
-      const th = document.createElement("th");
-      th.textContent = header;
-      headerRow.appendChild(th);
-    });
-    table.appendChild(headerRow);
+    async function fetchData() {
+      try {
+        const response = await fetch(API_URL);
+        const data = await response.json();
 
-    data.forEach(row => {
-      const tr = document.createElement("tr");
+        // Urutkan semua data berdasarkan Tanggal Berangkat terbaru
+        data.sort((a, b) => new Date(norm(b["Tanggal Berangkat"])) - new Date(norm(a["Tanggal Berangkat"])));
+
+        // Pisahkan data Belum Terbayar dan Sudah Terbayar/Dibayar/Lunas
+        const belumTerbayar = data.filter(row => norm(row["Status Penyelesaian"]).includes("belum"));
+        const sudahTerbayar = data.filter(row => {
+          const t = norm(row["Status Penyelesaian"]);
+          return t.includes("terbayar") || t.includes("dibayar") || t.includes("lunas");
+        });
+
+        // Debug: cek isi status
+        console.log("Contoh status:", data.map(r => r["Status Penyelesaian"]).slice(0,10));
+        console.log("Belum:", belumTerbayar.length, "Sudah:", sudahTerbayar.length);
+
+        // Gabungkan: ambil dulu Belum Terbayar, lalu Sudah Terbayar
+        const gabungan = [...belumTerbayar, ...sudahTerbayar];
+
+        // Ambil maksimal 30 baris dari gabungan
+        displayData = gabungan.slice(0, MAX_ROWS);
+
+        renderTable(displayData);
+      } catch (error) {
+        console.error("Gagal ambil data:", error);
+      }
+    }
+
+    function renderTable(data) {
+      const table = document.getElementById("data-table");
+      table.innerHTML = "";
+
+      if (!data || data.length === 0) {
+        table.innerHTML = "<tr><td>Tidak ada data</td></tr>";
+        return;
+      }
+
+      const headers = Object.keys(data[0]);
+      const headerRow = document.createElement("tr");
       headers.forEach(header => {
-        const td = document.createElement("td");
-        td.textContent = row[header] ?? "";
-        tr.appendChild(td);
+        const th = document.createElement("th");
+        th.textContent = header;
+        headerRow.appendChild(th);
       });
-      table.appendChild(tr);
-    });
-  }
+      table.appendChild(headerRow);
 
-  // Scroll pixel demi pixel, reset ke atas setelah mentok bawah
-  function autoScroll() {
-    const container = document.getElementById("scroll-container");
-    if (!container) return;
+      data.forEach(row => {
+        const tr = document.createElement("tr");
 
-    const maxScroll = container.scrollHeight - container.clientHeight;
-    container.scrollTop += 1;
+        // Tambahkan class warna berdasarkan status
+        const status = norm(row["Status Penyelesaian"]);
+        if (status.includes("belum")) {
+          tr.classList.add("belum");
+        } else {
+          tr.classList.add("sudah");
+        }
 
-    if (container.scrollTop >= maxScroll) {
-      container.scrollTop = 0;
+        headers.forEach(header => {
+          const td = document.createElement("td");
+          td.textContent = row[header] ?? "";
+          tr.appendChild(td);
+        });
+        table.appendChild(tr);
+      });
     }
-  }
 
-  setInterval(fetchData, 10000);
-  fetchData();
-  setInterval(autoScroll, 30);
-</script>
+    // Scroll pixel demi pixel, reset ke atas setelah mentok bawah
+    function autoScroll() {
+      const container = document.getElementById("scroll-container");
+      if (!container) return;
 
+      const maxScroll = container.scrollHeight - container.clientHeight;
+      container.scrollTop += 1;
+
+      if (container.scrollTop >= maxScroll) {
+        container.scrollTop = 0;
+      }
+    }
+
+    setInterval(fetchData, 10000); // refresh data tiap 10 detik
+    fetchData();
+    setInterval(autoScroll, 30); // scroll pixel tiap 30ms
+  </script>
 </body>
 </html>
-
