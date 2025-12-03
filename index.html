@@ -7,14 +7,20 @@
     body { font-family: Arial, sans-serif; margin: 20px; }
     h1 { color: #333; }
     .table-wrap {
-      max-height: 400px; /* tinggi area scroll */
+      max-height: 400px;
       overflow-y: auto;
       border: 1px solid #ccc;
     }
     table { border-collapse: collapse; width: 100%; }
     th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-    th { background-color: #f2f2f2; }
-    tr.active { background-color: #dbeafe; } /* highlight baris aktif */
+    th {
+      background-color: #f2f2f2;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    tr.active { background-color: #dbeafe; }
   </style>
 </head>
 <body>
@@ -25,7 +31,7 @@
 
   <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbx7E2NYYjyvpDQOCbuAoPg38a9IJRS4YbqX80hA_T3tSueVC7jKhxSn5NqkAhBoKV1fuQ/exec";
-    const MAX_ROWS = 30; // tampilkan hanya 30 data
+    const MAX_ROWS = 30;
     let filteredData = [];
     let currentRow = 0;
 
@@ -34,23 +40,20 @@
         const response = await fetch(API_URL);
         const data = await response.json();
 
-        // Filter hanya Status Penyelesaian = "Belum Terbayar"
-        filteredData = data.filter(row => 
-          row["Status Penyelesaian"] && row["Status Penyelesaian"].toLowerCase().includes("belum terbayar")
+        filteredData = data.filter(row =>
+          row["Status Penyelesaian"] &&
+          row["Status Penyelesaian"].toLowerCase().includes("belum terbayar")
         );
 
-        // Urutkan berdasarkan Tanggal Berangkat (terbaru dulu)
         filteredData.sort((a, b) => {
           const dateA = new Date(a["Tanggal Berangkat"]);
           const dateB = new Date(b["Tanggal Berangkat"]);
-          return dateB - dateA; // descending
+          return dateB - dateA;
         });
 
-        // Ambil hanya 30 data pertama
         filteredData = filteredData.slice(0, MAX_ROWS);
-
         renderTable(filteredData);
-        currentRow = 0; // reset scroll ke awal setiap refresh
+        currentRow = 0;
       } catch (error) {
         console.error("Gagal ambil data:", error);
       }
@@ -65,7 +68,6 @@
         return;
       }
 
-      // Buat header
       const headers = Object.keys(data[0]);
       const headerRow = document.createElement("tr");
       headers.forEach(header => {
@@ -75,7 +77,6 @@
       });
       table.appendChild(headerRow);
 
-      // Buat isi tabel
       data.forEach(row => {
         const tr = document.createElement("tr");
         headers.forEach(header => {
@@ -87,17 +88,14 @@
       });
     }
 
-    // Scroll otomatis per baris
     function scrollByRow() {
       const rows = document.querySelectorAll("#data-table tr");
-      if (rows.length <= 1) return; // hanya header
+      if (rows.length <= 1) return;
 
-      // Hilangkan highlight lama
       rows.forEach(r => r.classList.remove("active"));
 
-      // Highlight baris aktif
-      const rowIndex = (currentRow % filteredData.length);
-      const activeRow = rows[rowIndex + 1]; // +1 karena index 0 = header
+      const rowIndex = currentRow % filteredData.length;
+      const activeRow = rows[rowIndex + 1];
       if (activeRow) {
         activeRow.classList.add("active");
         activeRow.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -105,15 +103,12 @@
 
       currentRow++;
       if (currentRow >= MAX_ROWS) {
-        currentRow = 0; // balik ke awal setelah 30 data
+        currentRow = 0;
       }
     }
 
-    // Refresh data tiap 10 detik
     setInterval(fetchData, 10000);
     fetchData();
-
-    // Scroll baris tiap 2 detik
     setInterval(scrollByRow, 2000);
   </script>
 </body>
