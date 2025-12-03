@@ -78,7 +78,7 @@
 
         const sudahTerbayar = data.filter(row =>
           row["Status Penyelesaian"] &&
-          row["Status Penyelesaian"].toLowerCase().includes("sudah terbayar")
+          row["Status Penyelesaian"].toLowerCase().includes("terbayar")
         );
 
         // Gabungkan: ambil dulu Belum Terbayar, kalau kurang dari 30 tambahkan Sudah Terbayar
@@ -116,6 +116,7 @@
     }
 
     function scrollByRow() {
+      const container = document.querySelector(".table-wrap");
       const rows = document.querySelectorAll("#data-table tr");
       if (rows.length <= 1) return;
 
@@ -123,14 +124,19 @@
 
       const rowIndex = currentRow % displayData.length;
       const activeRow = rows[rowIndex + 1]; // +1 karena index 0 = header
+
       if (activeRow) {
         activeRow.classList.add("active");
-        activeRow.scrollIntoView({ behavior: "smooth", block: "center" });
+
+        // Hitung posisi scroll berdasarkan tinggi baris
+        const rowHeight = activeRow.offsetHeight;
+        container.scrollTop = rowIndex * rowHeight;
       }
 
       currentRow++;
       if (currentRow >= displayData.length) {
         currentRow = 0; // balik ke awal setelah semua baris tampil
+        container.scrollTop = 0; // reset scroll ke atas
       }
     }
 
