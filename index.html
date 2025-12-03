@@ -10,6 +10,8 @@
     table { border-collapse: collapse; width: 100%; }
     th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
     th { background-color: #f2f2f2; position: sticky; top: 0; z-index: 2; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    tr.belum { background-color: #ffe5e5; }   /* merah muda untuk Belum Terbayar */
+    tr.sudah { background-color: #e5ffe5; }   /* hijau muda untuk Sudah Terbayar */
   </style>
 </head>
 <body>
@@ -17,76 +19,128 @@
   <div class="table-wrap" id="scroll-container">
     <table id="data-table"></table>
   </div>
+
   <script>
-  const API_URL = "https://script.google.com/macros/s/AKfycbx7E2NYYjyvpDQOCbuAoPg38a9IJRS4YbqX80hA_T3tSueVC7jKhxSn5NqkAhBoKV1fuQ/exec";
-  const MAX_ROWS = 30;
-  let displayData = [];
-  async function fetchData() {
-    try {
-      const response = await fetch(API_URL);
-      const data = await response.json();
-      // Urutkan semua data berdasarkan Tanggal Berangkat terbaru
-      data.sort((a, b) => new Date(b["Tanggal Berangkat"]) - new Date(a["Tanggal Berangkat"]));
-      // Pisahkan data Belum Terbayar dan Terbayar/Dibayar
-      const belumTerbayar = data.filter(row =>
-        row["Status Penyelesaian"] &&
-        row["Status Penyelesaian"].toLowerCase().includes("belum")
-      );
-      const sudahTerbayar = data.filter(row =>
-        row["Status Penyelesaian"] &&
-        (row["Status Penyelesaian"].toLowerCase().includes("terbayar") ||
-         row["Status Penyelesaian"].toLowerCase().includes("dibayar"))
-      );
-      // Gabungkan: ambil dulu Belum Terbayar, lalu Sudah Terbayar
-      const gabungan = [...belumTerbayar, ...sudahTerbayar];
-      // Ambil maksimal 30 baris dari gabungan
-      displayData = gabungan.slice(0, MAX_ROWS);
-      renderTable(displayData);
-    } catch (error) {
-      console.error("Gagal ambil data:", error);
+    const API_URL = "https://script.google.com/macros/s/AKfycbx7E2NYYjyvpDQOCbuAoPg38a9IJRS4YbqX80hA_T3tSueVC7jKhxSn5NqkAhBoKV1fuQ/exec";
+    const MAX_ROWS = 30;
+    let displayData = [];
+
+    // Normalisasi string: huruf kecil, trim, rapikan spasi
+    function norm(s) {
+      return (s ?? "").toString().toLowerCase().trim().replace(/\s+/g, " ");
     }
-  }
-  function renderTable(data) {
-    const table = document.getElementById("data-table");
-    table.innerHTML = "";
-    if (!data || data.length === 0) {
-      table.innerHTML = "<tr><td>Tidak ada data</td></tr>";
-      return;
+
+    // Klasifikasi status ke "belum" atau "sudah" dengan aturan longgar
+    function classifyStatus(text) {
+      const t = norm(text);
+      if (!t) return "sudah"; // kosong dianggap sudah, biar tabel tetap penuh
+
+      // indikator BELUM (berbagai variasi)
+      const isBelum =
+        t.includes("belum") ||
+        t.includes("blm") ||
+        t.includes("tidak") && (t.includes("bayar") || t.includes("terbayar") || t.includes("dibayar")) ||
+        t.includes("unpaid");
+
+      // indikator SUDAH (berbagai variasi)
+      const isSudah =
+        t.includes("terbayar") ||
+        t.includes("dibayar") ||
+        t.includes("sudah") && (t.includes("bayar") || t.includes("terbayar") || t.includes("dibayar")) ||
+        t.includes("lunas") ||
+        t.includes("selesai") ||
+        t.includes("paid");
+
+      if (isBelum && !isSudah) return "belum";
+      if (isSudah && !isBelum) return "sudah";
+      // Jika mixed atau tidak jelas, default ke "sudah" agar gabungan tetap terisi
+      return "sudah";
     }
-    const headers = Object.keys(data[0]);
-    const headerRow = document.createElement("tr");
-    headers.forEach(header => {
-      const th = document.createElement("th");
-      th.textContent = header;
-      headerRow.appendChild(th);
-    });
-    table.appendChild(headerRow);
-    data.forEach(row => {
-      const tr = document.createElement("tr");
+
+    async function fetchData() {
+      try {
+        const response = await fetch(API_URL);
+        const data = await response.json();
+
+        // Urutkan semua data berdasarkan Tanggal Berangkat terbaru
+        data.sort((a, b) => new Date(norm(b["Tanggal Berangkat"])) - new Date(norm(a["Tanggal Berangkat"])));
+
+        // Kelompokkan berdasarkan klasifikasi robust
+        const belumTerbayar = [];
+        const sudahTerbayar = [];
+        for (const row of data) {
+          const statusGroup = classifyStatus(row["Status Penyelesaian"]);
+          if (statusGroup === "belum") belumTerbayar.push(row);
+          else sudahTerbayar.push(row);
+        }
+
+        // Debug kecil supaya kamu bisa cek di Console
+        console.log("Total data:", data.length);
+        console.log("Belum Terbayar:", belumTerbayar.length);
+        console.log("Sudah Terbayar:", sudahTerbayar.length);
+
+        // Gabungkan: ambil dulu Belum Terbayar, lalu Sudah Terbayar
+        const gabungan = [...belumTerbayar, ...sudahTerbayar];
+
+        // Ambil maksimal 30 baris dari gabungan
+        displayData = gabungan.slice(0, MAX_ROWS);
+
+        renderTable(displayData);
+      } catch (error) {
+        console.error("Gagal ambil data:", error);
+      }
+    }
+
+    function renderTable(data) {
+      const table = document.getElementById("data-table");
+      table.innerHTML = "";
+
+      if (!data || data.length === 0) {
+        table.innerHTML = "<tr><td>Tidak ada data</td></tr>";
+        return;
+      }
+
+      const headers = Object.keys(data[0]);
+      const headerRow = document.createElement("tr");
       headers.forEach(header => {
-        const td = document.createElement("td");
-        td.textContent = row[header] ?? "";
-        tr.appendChild(td);
+        const th = document.createElement("th");
+        th.textContent = header;
+        headerRow.appendChild(th);
       });
-      table.appendChild(tr);
-    });
-  }
-  // Scroll pixel demi pixel
-  let scrollDirection = 1;
-  function autoScroll() {
-    const container = document.getElementById("scroll-container");
-    if (!container) return;
-    const maxScroll = container.scrollHeight - container.clientHeight;
-    container.scrollTop += scrollDirection * 1;
-    if (container.scrollTop >= maxScroll) {
-      scrollDirection = -1;
-    } else if (container.scrollTop <= 0) {
-      scrollDirection = 1;
+      table.appendChild(headerRow);
+
+      data.forEach(row => {
+        const tr = document.createElement("tr");
+
+        // Tambahkan class warna berdasarkan klasifikasi robust
+        const group = classifyStatus(row["Status Penyelesaian"]);
+        tr.classList.add(group === "belum" ? "belum" : "sudah");
+
+        headers.forEach(header => {
+          const td = document.createElement("td");
+          td.textContent = row[header] ?? "";
+          tr.appendChild(td);
+        });
+        table.appendChild(tr);
+      });
     }
-  }
-  setInterval(fetchData, 10000); // refresh data tiap 10 detik
-  fetchData();
-  setInterval(autoScroll, 30); // scroll pixel tiap 30ms
-</script>
+
+    // Scroll pixel demi pixel, reset ke atas setelah mentok bawah (tidak mundur)
+    function autoScroll() {
+      const container = document.getElementById("scroll-container");
+      if (!container) return;
+
+      const maxScroll = container.scrollHeight - container.clientHeight;
+      container.scrollTop += 1; // geser 1px tiap interval
+
+      if (container.scrollTop >= maxScroll) {
+        container.scrollTop = 0; // reset ke atas
+      }
+    }
+
+    setInterval(fetchData, 10000); // refresh data tiap 10 detik
+    fetchData();
+    setInterval(autoScroll, 30); // scroll pixel tiap 30ms
+  </script>
 </body>
 </html>
