@@ -14,7 +14,7 @@
     table { border-collapse: collapse; width: 100%; }
     th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
     th { background-color: #f2f2f2; }
-    tr:hover { background-color: #f9f9f9; }
+    tr.active { background-color: #dbeafe; } /* highlight baris aktif */
   </style>
 </head>
 <body>
@@ -26,42 +26,81 @@
   <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbx7E2NYYjyvpDQOCbuAoPg38a9IJRS4YbqX80hA_T3tSueVC7jKhxSn5NqkAhBoKV1fuQ/exec";
     const MAX_ROWS = 30; // tampilkan hanya 30 data
-    let rawData = [];
+    let filteredData = [];
+    let currentRow = 0;
 
     async function fetchData() {
       try {
         const response = await fetch(API_URL);
         const data = await response.json();
-        rawData = data;
 
-        // ambil 30 data pertama (atau terakhir, bisa diganti slice(-MAX_ROWS))
-        const limitedData = rawData.slice(0, MAX_ROWS);
+        // Filter hanya yang Status Penyelesaian = "Belum Terbayar"
+        filteredData = data.filter(row => 
+          row["Status Penyelesaian"] && row["Status Penyelesaian"].toLowerCase().includes("belum terbayar")
+        );
 
-        const table = document.getElementById("data-table");
-        table.innerHTML = "";
+        // Urutkan (opsional, misalnya berdasarkan tanggal atau tetap default)
+        // Di sini kita biarkan urutan asli, tapi bisa diurutkan kalau mau.
 
-        // Buat header
-        const headers = Object.keys(limitedData[0]);
-        const headerRow = document.createElement("tr");
-        headers.forEach(header => {
-          const th = document.createElement("th");
-          th.textContent = header;
-          headerRow.appendChild(th);
-        });
-        table.appendChild(headerRow);
+        // Ambil hanya 30 data pertama
+        filteredData = filteredData.slice(0, MAX_ROWS);
 
-        // Buat isi tabel
-        limitedData.forEach(row => {
-          const tr = document.createElement("tr");
-          headers.forEach(header => {
-            const td = document.createElement("td");
-            td.textContent = row[header];
-            tr.appendChild(td);
-          });
-          table.appendChild(tr);
-        });
+        renderTable(filteredData);
       } catch (error) {
         console.error("Gagal ambil data:", error);
+      }
+    }
+
+    function renderTable(data) {
+      const table = document.getElementById("data-table");
+      table.innerHTML = "";
+
+      if (data.length === 0) {
+        table.innerHTML = "<tr><td>Tidak ada data Belum Terbayar</td></tr>";
+        return;
+      }
+
+      // Buat header
+      const headers = Object.keys(data[0]);
+      const headerRow = document.createElement("tr");
+      headers.forEach(header => {
+        const th = document.createElement("th");
+        th.textContent = header;
+        headerRow.appendChild(th);
+      });
+      table.appendChild(headerRow);
+
+      // Buat isi tabel
+      data.forEach(row => {
+        const tr = document.createElement("tr");
+        headers.forEach(header => {
+          const td = document.createElement("td");
+          td.textContent = row[header] ?? "";
+          tr.appendChild(td);
+        });
+        table.appendChild(tr);
+      });
+    }
+
+    // Scroll otomatis per baris
+    function scrollByRow() {
+      const rows = document.querySelectorAll("#data-table tbody tr, #data-table tr");
+      if (rows.length <= 1) return; // hanya header
+
+      // Hilangkan highlight lama
+      rows.forEach(r => r.classList.remove("active"));
+
+      // Highlight baris aktif
+      const rowIndex = (currentRow % (filteredData.length));
+      const activeRow = rows[rowIndex + 1]; // +1 karena index 0 = header
+      if (activeRow) {
+        activeRow.classList.add("active");
+        activeRow.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+
+      currentRow++;
+      if (currentRow >= MAX_ROWS) {
+        currentRow = 0; // balik ke awal setelah 30 data
       }
     }
 
@@ -69,29 +108,8 @@
     setInterval(fetchData, 10000);
     fetchData();
 
-    // Auto-scroll
-    let scrollDirection = "down";
-    function autoScrollTable() {
-      const container = document.querySelector(".table-wrap");
-      if (!container) return;
-
-      const maxScroll = container.scrollHeight - container.clientHeight;
-
-      if (scrollDirection === "down") {
-        container.scrollTop += 1;
-        if (container.scrollTop >= maxScroll) {
-          scrollDirection = "up";
-        }
-      } else {
-        container.scrollTop -= 1;
-        if (container.scrollTop <= 0) {
-          scrollDirection = "down";
-        }
-      }
-    }
-
-    // Scroll setiap 50ms
-    setInterval(autoScrollTable, 50);
+    // Scroll baris tiap 2 detik
+    setInterval(scrollByRow, 2000);
   </script>
 </body>
 </html>
