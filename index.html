@@ -31,16 +31,20 @@
         // Urutkan semua data berdasarkan Tanggal Berangkat terbaru
         data.sort((a, b) => new Date(b["Tanggal Berangkat"]) - new Date(a["Tanggal Berangkat"]));
 
-        // Pisahkan data Belum Terbayar dan Terbayar
+        // Pisahkan data Belum Terbayar dan Sudah Terbayar
         const belumTerbayar = data.filter(row =>
           row["Status Penyelesaian"]?.toLowerCase().includes("belum terbayar")
         );
-        const terbayar = data.filter(row =>
-          row["Status Penyelesaian"]?.toLowerCase().includes("terbayar")
+
+        const sudahTerbayar = data.filter(row =>
+          row["Status Penyelesaian"]?.toLowerCase().includes("sudah terbayar")
         );
 
-        // Gabungkan: ambil dulu Belum Terbayar, kalau kurang dari 30 tambahkan Terbayar
-        displayData = belumTerbayar.concat(terbayar).slice(0, MAX_ROWS);
+        // Gabungkan: ambil dulu Belum Terbayar, lalu Sudah Terbayar
+        const gabungan = [...belumTerbayar, ...sudahTerbayar];
+
+        // Ambil maksimal 30 baris dari gabungan
+        displayData = gabungan.slice(0, MAX_ROWS);
 
         renderTable(displayData);
       } catch (error) {
@@ -88,9 +92,9 @@
       }
     }
 
-    setInterval(fetchData, 10000);
+    setInterval(fetchData, 10000); // refresh data tiap 10 detik
     fetchData();
-    setInterval(autoScroll, 30);
+    setInterval(autoScroll, 30); // scroll pixel tiap 30ms
   </script>
 </body>
 </html>
