@@ -19,92 +19,88 @@
   </div>
 
   <script>
-  const API_URL = "https://script.google.com/macros/s/AKfycbx7E2NYYjyvpDQOCbuAoPg38a9IJRS4YbqX80hA_T3tSueVC7jKhxSn5NqkAhBoKV1fuQ/exec";
-  const MAX_ROWS = 30;
-  let displayData = [];
+    const API_URL = "https://script.google.com/macros/s/AKfycbx7E2NYYjyvpDQOCbuAoPg38a9IJRS4YbqX80hA_T3tSueVC7jKhxSn5NqkAhBoKV1fuQ/exec";
+    const MAX_ROWS = 30;
+    let displayData = [];
 
-  async function fetchData() {
-    try {
-      const response = await fetch(API_URL);
-      const data = await response.json();
+    async function fetchData() {
+      try {
+        const response = await fetch(API_URL);
+        const data = await response.json();
 
-      // Urutkan semua data berdasarkan Tanggal Berangkat terbaru
-      data.sort((a, b) => new Date(b["Tanggal Berangkat"]) - new Date(a["Tanggal Berangkat"]));
+        // Urutkan semua data berdasarkan Tanggal Berangkat terbaru
+        data.sort((a, b) => new Date(b["Tanggal Berangkat"]) - new Date(a["Tanggal Berangkat"]));
 
-      // Pisahkan data Belum Terbayar dan Terbayar/Dibayar
-      const belumTerbayar = data.filter(row =>
-        row["Status Penyelesaian"] &&
-        row["Status Penyelesaian"].toLowerCase().includes("belum")
-      );
+        // Pisahkan data Belum Terbayar dan Sudah Terbayar/Dibayar
+        const belumTerbayar = data.filter(row =>
+          row["Status Penyelesaian"] &&
+          row["Status Penyelesaian"].toLowerCase().includes("belum")
+        );
 
-      const sudahTerbayar = data.filter(row =>
-        row["Status Penyelesaian"] &&
-        (row["Status Penyelesaian"].toLowerCase().includes("terbayar") ||
-         row["Status Penyelesaian"].toLowerCase().includes("dibayar"))
-      );
+        const sudahTerbayar = data.filter(row =>
+          row["Status Penyelesaian"] &&
+          (row["Status Penyelesaian"].toLowerCase().includes("terbayar") ||
+           row["Status Penyelesaian"].toLowerCase().includes("dibayar"))
+        );
 
-      // Gabungkan: ambil dulu Belum Terbayar, lalu Sudah Terbayar
-      const gabungan = [...belumTerbayar, ...sudahTerbayar];
+        // Gabungkan: ambil dulu Belum Terbayar, lalu Sudah Terbayar
+        const gabungan = [...belumTerbayar, ...sudahTerbayar];
 
-      // Ambil maksimal 30 baris dari gabungan
-      displayData = gabungan.slice(0, MAX_ROWS);
+        // Ambil maksimal 30 baris dari gabungan
+        displayData = gabungan.slice(0, MAX_ROWS);
 
-      renderTable(displayData);
-    } catch (error) {
-      console.error("Gagal ambil data:", error);
-    }
-  }
-
-  function renderTable(data) {
-    const table = document.getElementById("data-table");
-    table.innerHTML = "";
-
-    if (!data || data.length === 0) {
-      table.innerHTML = "<tr><td>Tidak ada data</td></tr>";
-      return;
+        renderTable(displayData);
+      } catch (error) {
+        console.error("Gagal ambil data:", error);
+      }
     }
 
-    const headers = Object.keys(data[0]);
-    const headerRow = document.createElement("tr");
-    headers.forEach(header => {
-      const th = document.createElement("th");
-      th.textContent = header;
-      headerRow.appendChild(th);
-    });
-    table.appendChild(headerRow);
+    function renderTable(data) {
+      const table = document.getElementById("data-table");
+      table.innerHTML = "";
 
-    data.forEach(row => {
-      const tr = document.createElement("tr");
+      if (!data || data.length === 0) {
+        table.innerHTML = "<tr><td>Tidak ada data</td></tr>";
+        return;
+      }
+
+      const headers = Object.keys(data[0]);
+      const headerRow = document.createElement("tr");
       headers.forEach(header => {
-        const td = document.createElement("td");
-        td.textContent = row[header] ?? "";
-        tr.appendChild(td);
+        const th = document.createElement("th");
+        th.textContent = header;
+        headerRow.appendChild(th);
       });
-      table.appendChild(tr);
-    });
-  }
+      table.appendChild(headerRow);
 
-  // Scroll pixel demi pixel
-  let scrollDirection = 1;
-  function autoScroll() {
-  const container = document.getElementById("scroll-container");
-  if (!container) return;
+      data.forEach(row => {
+        const tr = document.createElement("tr");
+        headers.forEach(header => {
+          const td = document.createElement("td");
+          td.textContent = row[header] ?? "";
+          tr.appendChild(td);
+        });
+        table.appendChild(tr);
+      });
+    }
 
-  const maxScroll = container.scrollHeight - container.clientHeight;
-  container.scrollTop += 1; // geser 1px tiap interval
+    // Scroll pixel demi pixel, reset ke atas setelah mentok bawah
+    function autoScroll() {
+      const container = document.getElementById("scroll-container");
+      if (!container) return;
 
-  if (container.scrollTop >= maxScroll) {
-    // kalau sudah mentok bawah, langsung balik ke atas
-    container.scrollTop = 0;
-  }
-}
+      const maxScroll = container.scrollHeight - container.clientHeight;
+      container.scrollTop += 1; // geser 1px tiap interval
 
-  setInterval(fetchData, 10000); // refresh data tiap 10 detik
-  fetchData();
-  setInterval(autoScroll, 30); // scroll pixel tiap 30ms
-</script>
+      if (container.scrollTop >= maxScroll) {
+        // kalau sudah mentok bawah, langsung balik ke atas
+        container.scrollTop = 0;
+      }
+    }
 
+    setInterval(fetchData, 10000); // refresh data tiap 10 detik
+    fetchData();
+    setInterval(autoScroll, 30); // scroll pixel tiap 30ms
+  </script>
 </body>
 </html>
-
-
