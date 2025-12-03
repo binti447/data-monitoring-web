@@ -11,7 +11,7 @@
     th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
     th { background-color: #f2f2f2; position: sticky; top: 0; z-index: 2; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
     tr.belum { background-color: #ffe5e5; }   /* merah muda untuk Belum Terbayar */
-    tr.sudah { background-color: #e5ffe5; }   /* hijau muda untuk Sudah Terbayar */
+    tr.active { outline: 2px solid orange; background-color: #fff8dc !important; } /* highlight baris aktif */
   </style>
 </head>
 <body>
@@ -38,16 +38,11 @@
         // Urutkan semua data berdasarkan Tanggal Berangkat terbaru
         data.sort((a, b) => new Date(norm(b["Tanggal Berangkat"])) - new Date(norm(a["Tanggal Berangkat"])));
 
-        // Pisahkan data Belum Terbayar dan Sudah Terbayar/Dibayar/Lunas
-        const belumTerbayar = data.filter(row => norm(row["Status Penyelesaian"]).includes("belum"));
-        const sudahTerbayar = data.filter(row => {
-          const t = norm(row["Status Penyelesaian"]);
-          return t.includes("terbayar") || t.includes("dibayar") || t.includes("lunas");
-        });
+        // Pisahkan data Belum Terbayar dan Sudah Terbayar
+        const belumTerbayar = data.filter(row => norm(row["Status Penyelesaian"]) === "belum terbayar");
+        const sudahTerbayar = data.filter(row => norm(row["Status Penyelesaian"]) === "sudah terbayar");
 
-        // Debug: cek isi status
-        console.log("Contoh status:", data.map(r => r["Status Penyelesaian"]).slice(0,10));
-        console.log("Belum:", belumTerbayar.length, "Sudah:", sudahTerbayar.length);
+        console.log("Total:", data.length, "Belum:", belumTerbayar.length, "Sudah:", sudahTerbayar.length);
 
         // Gabungkan: ambil dulu Belum Terbayar, lalu Sudah Terbayar
         const gabungan = [...belumTerbayar, ...sudahTerbayar];
@@ -82,12 +77,10 @@
       data.forEach(row => {
         const tr = document.createElement("tr");
 
-        // Tambahkan class warna berdasarkan status
+        // Tambahkan class warna hanya untuk Belum Terbayar
         const status = norm(row["Status Penyelesaian"]);
-        if (status.includes("belum")) {
+        if (status === "belum terbayar") {
           tr.classList.add("belum");
-        } else {
-          tr.classList.add("sudah");
         }
 
         headers.forEach(header => {
@@ -97,6 +90,25 @@
         });
         table.appendChild(tr);
       });
+    }
+
+    // Highlight baris aktif (yang berada di tengah container)
+    function highlightVisibleRow() {
+      const container = document.getElementById("scroll-container");
+      const rows = container.querySelectorAll("tr:not(:first-child)");
+
+      rows.forEach(row => row.classList.remove("active"));
+
+      for (const row of rows) {
+        const rect = row.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        const middle = containerRect.top + containerRect.height / 2;
+
+        if (rect.top <= middle && rect.bottom >= middle) {
+          row.classList.add("active");
+          break;
+        }
+      }
     }
 
     // Scroll pixel demi pixel, reset ke atas setelah mentok bawah
@@ -110,6 +122,8 @@
       if (container.scrollTop >= maxScroll) {
         container.scrollTop = 0;
       }
+
+      highlightVisibleRow(); // panggil highlight setiap scroll
     }
 
     setInterval(fetchData, 10000); // refresh data tiap 10 detik
