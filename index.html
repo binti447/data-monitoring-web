@@ -10,6 +10,8 @@
     table { border-collapse: collapse; width: 100%; }
     th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
     th { background-color: #f2f2f2; position: sticky; top: 0; z-index: 2; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    tr.belum { background-color: #ffe5e5; }   /* merah muda untuk Belum Terbayar */
+    tr.sudah { background-color: #e5ffe5; }   /* hijau muda untuk Sudah Terbayar */
   </style>
 </head>
 <body>
@@ -31,7 +33,7 @@
         // Urutkan semua data berdasarkan Tanggal Berangkat terbaru
         data.sort((a, b) => new Date(b["Tanggal Berangkat"]) - new Date(a["Tanggal Berangkat"]));
 
-        // Pisahkan data Belum Terbayar dan Sudah Terbayar/Dibayar
+        // Pisahkan data Belum Terbayar dan Terbayar/Dibayar
         const belumTerbayar = data.filter(row =>
           row["Status Penyelesaian"] &&
           row["Status Penyelesaian"].toLowerCase().includes("belum")
@@ -75,6 +77,14 @@
 
       data.forEach(row => {
         const tr = document.createElement("tr");
+
+        // Tambahkan class untuk warna berbeda
+        if (row["Status Penyelesaian"]?.toLowerCase().includes("belum")) {
+          tr.classList.add("belum");
+        } else {
+          tr.classList.add("sudah");
+        }
+
         headers.forEach(header => {
           const td = document.createElement("td");
           td.textContent = row[header] ?? "";
